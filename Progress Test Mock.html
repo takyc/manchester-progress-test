@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Manchester Medicine Mini Progress Test</title>
+
+<!-- Better font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f6f8fb;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Header */
+h1 {
+    text-align: center;
+    margin-bottom: 5px;
+}
+h4 {
+    text-align: center;
+    font-weight: 400;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+/* Container */
+#quiz-container {
+    max-width: 800px;
+    margin: auto;
+}
+
+/* Progress bar */
+.progress-wrapper {
+    background: #e6ecf2;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 12px;
+    margin-bottom: 10px;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #5aa9ff, #3dd5f3);
+    transition: width 0.4s ease;
+}
+
+#progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+    color: #555;
+}
+
+/* Question card */
+.question {
+    display: none;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    animation: fadeIn 0.3s ease;
+}
+.question.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+/* Options */
+.option {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #d0d7de;
+    background: #f9fbfd;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.option:hover:not(.locked) {
+    background: #eef6ff;
+    border-color: #5aa9ff;
+}
+
+.option.correct {
+    background: #d4f5dd;
+    border-color: #28a745;
+}
+
+.option.wrong {
+    background: #fde2e2;
+    border-color: #dc3545;
+}
+
+.option.locked {
+    cursor: not-allowed;
+}
+
+/* Feedback */
+.feedback {
+    display: none;
+    margin-top: 15px;
+    padding: 15px;
+    border-top: 1px solid #eee;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+/* Navigation */
+.nav-buttons {
+    text-align: center;
+    margin-top: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+#prev-btn {
+    background: #e0e0e0;
+}
+
+#next-btn {
+    background: #5aa9ff;
+    color: white;
+}
+
+#next-btn:hover {
+    background: #3d8fe0;
+}
+
+/* Final score */
+.final {
+    text-align: center;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+}
+</style>
+
+<script>
+let currentQuestion = 0;
+let score = 0;
+const questions = [];
+
+window.onload = () => {
+    document.querySelectorAll(".question").forEach(q => questions.push(q));
+    questions[0].classList.add("active");
+    updateUI();
+    updateScoreDisplay();
+};
+
+function selectAnswer(option) {
+    const question = option.closest(".question");
+
+    if (question.dataset.answered === "true") return;
+    question.dataset.answered = "true";
+
+    const isCorrect = option.dataset.correct === "true";
+
+    if (isCorrect) {
+        score++;
+        option.classList.add("correct");
+    } else {
+        option.classList.add("wrong");
+
+        // highlight correct answer
+        question.querySelectorAll(".option").forEach(btn => {
+            if (btn.dataset.correct === "true") {
+                btn.classList.add("correct");
+            }
+        });
+    }
+
+    question.querySelectorAll(".option").forEach(btn => {
+        btn.classList.add("locked");
+        btn.disabled = true;
+    });
+
+    const feedback = question.querySelector(".feedback");
+    if (feedback) feedback.style.display = "block";
+    updateScoreDisplay();
+}
+
+function goNext() {
+    const current = questions[currentQuestion];
+
+    if (!current.dataset.answered) {
+        alert("Please select an answer first.");
+        return;
+    }
+
+    if (currentQuestion < questions.length - 1) {
+        current.classList.remove("active");
+        currentQuestion++;
+        questions[currentQuestion].classList.add("active");
+        updateUI();
+    } else {
+        showFinalScore();
+    }
+}
+
+function goBack() {
+    if (currentQuestion > 0) {
+        questions[currentQuestion].classList.remove("active");
+        currentQuestion--;
+        questions[currentQuestion].classList.add("active");
+        updateUI();
+    }
+}
+
+function updateUI() {
+    document.getElementById("progress-text").innerText =
+        `Question ${currentQuestion + 1} of ${questions.length}`;
+
+    const progressPercent = ((currentQuestion + 1) / questions.length) * 100;
+    document.getElementById("progress-bar").style.width = progressPercent + "%";
+
+    document.getElementById("prev-btn").style.display =
+        currentQuestion === 0 ? "none" : "inline-block";
+
+    document.getElementById("next-btn").innerText =
+        currentQuestion === questions.length - 1 ? "Finish" : "Next";
+}
+
+function showFinalScore() {
+    const percentage = ((score / questions.length) * 100).toFixed(0);
+    document.getElementById("quiz-container").innerHTML = `
+        <div class="final">
+            <h2>${score}/${questions.length} (${percentage}%)</h2>
+            <p> Best of Luck in Your Progress Test! </p>
+        </div>
+    `;
+}
+// Keyboard controls
+document.addEventListener("keydown", (e) => {
+
+    const current = questions[currentQuestion];
+    if (!current) return;
+
+    const options = current.querySelectorAll(".option");
+
+    // Number keys 1-5 select answers
+    if (e.key >= "1" && e.key <= "5") {
+        const index = parseInt(e.key) - 1;
+
+        if (options[index] && !current.dataset.answered) {
+            options[index].click();
+        }
+    }
+
+    // Right arrow or Enter = next question
+    if (e.key === "ArrowRight" || e.key === "Enter") {
+        goNext();
+    }
+
+    // Left arrow = previous question
+    if (e.key === "ArrowLeft") {
+        goBack();
+    }
+});
+function updateScoreDisplay() {
+
+    let answered = 0;
+
+    questions.forEach(q => {
+        if (q.dataset.answered === "true") {
+            answered++;
+        }
+    });
+
+    const percentage =
+        answered === 0
+        ? 0
+        : ((score / answered) * 100).toFixed(0);
+
+    document.getElementById("score-display").innerText =
+        `Current Score: ${percentage}%`;
+}
+</script>
+</head>
+
+<body>
+
+<h1>Manchester Medicine Mini Progress Test</h1>
+<h4>Brought to You by Manchester Haemsoc</h4>
+
+<div id="quiz-container">
+
+<div class="progress-wrapper">
+    <div class="progress-bar" id="progress-bar"></div>
+</div>
+<div id="progress-text"></div>
+<p style="text-align:center; color:#777; font-size:0.85rem;">
+Use keys 1-5 to answer and arrow keys to navigate questions!
+</p>
+<div id="score-display" style="
+    text-align:center;
+    margin-bottom:20px;
+    color:#444;
+    font-weight:600;
+">
+Current Score: 0%
+</div>
+<!-- Question 1 -->
+<div class="question">
+<p><strong>A 67 year old man presents with a 30 second episode of syncope after playing padel with his colleagues. He reports no prodromal symptoms and recovered rapidly. He can not identify a trigger for the episode. </strong></p>
+<p><strong>What is the most likely cause of his syncope?</strong></p>
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Vasovagal syncope</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Transient Ischemic Attack</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Focal Impaired Awareness Seizure</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Cardiogenic Syncope</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypoglycaemia</button>
+
+<div class="feedback">
+<p><strong>Correct: Cardiogenic Syncope</strong></p>
+<p>This is most likely cardiogenic syncope due to the short duration, lack of prodromal symptoms and rapid recovery. He likely has a bradyarrhythmia or a structural heart abnormality such as aortic stenosis which would not be uncommon in his age group. Additionally this is in the context of exercise (although calling Padel an exercise is a push)</p>
+<p>Vasovagal syncope is also a good differential. However this would normally involve a prodrome of light-headedness and visual changes, as well as a clear trigger such as a stressful/emotional event or a long period of standing (instead of exertion).</p>
+<p>Transient Ischemic Attacks will present with stroke symptoms such as facial drooping, limb weakness, slurred speech and visual changes. Although these symptoms would fully recover in 24 hours, the recovery would not be as rapid as cardiogenic syncope.</p>
+<p>A Focal Impaired Awareness Seizure could fit in this time frame. However a post ictal period of confusion and fatigue is typical and there is no collateral history of repetitive movements. The preceding exercise also points towards a diagnosis of cardiogenic syncope.</p>
+<p>Hypoglycaemia is unlikely as prodromal symptoms of shakiness, sweating and confusion. This most often occurs in diabetics who have skipped meals or taken too much insulin. Symptoms take much longer than half a minute to resolve without intervention. </p>
+</div>
+</div>
+
+<!-- Question 2 -->
+<div class="question">
+<p><strong>A 17 year old woman presents with vaginal itching and a white odourless curd-like discharge. </strong></p>
+<p><strong>What is the most suitable treatment?</strong></p>
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Metronidazole 2g</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Oral Prednisolone 30mg</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Benzylpenicillin</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ceftriaxone 1g</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Fluconazole 150 mg</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Fluconazole 150  mg</strong></p>
+<p>Fluconazole is correct because this itching and discharge is typical of Vaginal Candidiasis. This is a fungal infection due to Candida Albicans, producing a classic cheese/curd-like white discharge that is odourless.</p>
+<p>Metronidazole is a treatment for Trichomonas Vaginalis. This presents with a “musty” smelling yellow/green purulent discharge and a classic finding is a “strawberry cervix”. It can also be used to treat bacterial vaginosis, which presents with white/gray discharge that would not be odourless or itchy.</p>
+<p>Oral prednisolone is not a standard treatment for vaginal discharge</p>
+<p>IM Benzylpenicillin is a treatment for Syphilis, which primarily presents as single painless ulcer known as a “chancre”</p>
+<p>Ceftriaxone is a treatment for Neisseria Gonorrhoea. This presents with a thick yellow discharge with a potential odour</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>During the Covid-19 pandemic, China implemented a nationwide screening program to assess the prevalence of Covid-19 across the country to plan the distribution of PPE. </strong></p>
+<p><strong>What is the best description of this type of study?</strong></p>
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Cohort study</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Case control study</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Cross sectional</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Randomised controlled trial</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Case report </button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Cross Sectional Study</strong></p>
+<p>Cross sectional is correct because this assesses a snapshot of the population at a particular point in time, with no follow-up</p>
+<p>Cohort study is incorrect as this assesses a group of people with a shared exposure over time</p>
+<p>Case control is incorrect as this compares individuals with a specific outcome/disease to similar individuals without the outcome/disease</p>
+<p>Randomised controlled trial is incorrect as this is where participants are randomly assigned to either a test group or a control group</p>
+<p>Case report is incorrect as this follows the outcome of a single participant</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 12 year old boy presents with a painful limp over the last month. The child complains of a dull ache over the hip, is in the 98th centile weight for his age and denies trauma. Upon examination, he has a loss of internal rotation of the leg during hip flexion.</strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Perthes Disease</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Slipped Capital Femoral Epiphysis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Septic Arthritis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Juvenile Idiopathic Arthritis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Developmental Dysplasia of the Hip</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Slipped Capital Femoral Epiphysis</strong></p>
+<p>Slipped Capital Femoral Epiphysis is correct. This is where there is a slip in the growth plate between the head and neck of the femur (This is not a hip dislocation). Often occurs in obese boys aged 12-14. This causes pain and a loss of internal rotation of the leg in hip flexion. SCFE requires urgent surgical treatment to prevent further slipping. </p>
+<p>Perthes disease is idiopathic avascular necrosis of the femoral head, affecting children aged 4-8, most commonly in boys.</p>
+<p>Septic arthritis would present with an acutely unwell patient (fever, immobility of joint, drop in BP, tachycardia)</p>
+<p>Juvenile Idiopathic Arthritis is arthritis in a child under 16. This would present with persistent joint pain, stiffness, swelling and warmth worse after resting. Associated symptoms include fever, rash and uveitis.</p>
+<p>Developmental Dysplasia of the Hip is a congenital disorder where the hip joint is not held properly due to a shallow acetabulum and loose hip joint ligaments. Most common in girls who were born in breech presentation, and would’ve presented at a far younger age (within 6 months, rarely present up to 3 years old)</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 36 year old patient is clinically dry after a 7 day history of persistent vomiting and diarrhoea. 24 hours ago they had a blood pressure of 93/58 mmHg and a Sodium of 159 mmol/L (135-145 mmol/L). They are given 0.18% Sodium Chloride with 4% glucose. They undergo a seizure. </strong></p>
+<p><strong>What is the most likely mechanism behind this process?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Cerebral Oedema</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypovolemic Shock</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Diabetic Ketoacidosis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Pontine Demyelination Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Aseptic Meningitis</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Cerebral Oedema</strong></p>
+<p>0.18% Sodium Chloride is a hypotonic solution. If given at a rate too high, water can enter brain tissue via osmosis causing oedema. This increases intracranial pressure causing seizures, comas and death. </p>
+<p>Hypovolemic shock can cause seizures, but the patient is undergoing active treatment for this.</p>
+<p>Diabetic Ketoacidosis can also cause seizures. The most common cause of death from DKA is cerebral oedema. However, this vignette describes a 7 day history (normally DKA is within hours) and no evidence of T1DM. </p>
+<p>Pontine Demyelination occurs the other way around, during the rapid correction of hyponatremia. Typically presents as severe neurological decline several days after correction. A useful phrase to remember for sodium correction is high to low - your brain will blow, low to high - your pons will die. </p>
+<p>Aseptic Meningitis would present with a fever, headache, light sensitivity and stiff neck. Infective origin (viral) instead of iatrogenic.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 59 year old woman has acute right sided flank pain which is colicky in nature. She is lying on her side with her knees bent. The doctor suspects kidney stones.</strong></p>
+<p><strong>What is the firstline investigation?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ultrasound Kidneys and Bladder</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Contrast CT Kidneys, Ureters, Bladder</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Non-Contrast CT Kidneys Ureters, Bladder</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Lithotripsy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Abdominopelvic X-Ray</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Non-Contrast CT Kidneys Ureters, Bladder</strong></p>
+<p>Non contrast CT KUB is used in renal colic unless the patient is pregnant or a child, where ultrasound is preferred due to the lower radiation dose</p>
+<p>Contrast CT involves unnecessary risk of intravenous dye. Kidney stones tend to be dense and visible on CT without contrast.</p>
+<p>Lithotripsy is a management where shockwaves can break stones into smaller fragments to be passed out in urine</p>
+<p>X-Ray is not preferred for visualising kidney stones. Uric acid stones and cystine stones are radiolucent and cannot be reliably visualised.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 85 year old woman has trouble walking downstairs due to double vision. She has no trouble walking up stairs. Her head is tilted at an axis when speaking to you. </strong></p>
+<p><strong>Which nerve is most likely affected?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Optic Nerve</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Oculomotor Nerve</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Trochlear Nerve</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ophthalmic Nerve</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Abducens Nerve</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Trochlear Nerve</strong></p>
+<p>Trouble walking downstairs due to diplopia is classic for trochlear nerve palsy. CN IV innervates the superior oblique muscle which is responsible for depressing and intorting the eye. This subsequently causes diplopia worse on downgaze and a compensatory head tilt. </p>
+<p>Optic Nerve damage can present as optic neuritis, such as in MS. This involves reduced colour vision, visual acuity and eye pain.</p>
+<p>Oculomotor nerve palsy causes the eye to be “down and out” as the lateral rectus and superior oblique muscle remain intact. </p>
+<p>Ophthalmic nerve is a branch of the trigeminal nerve. Damage to this nerve is normally due to compression, causing severe shock/stabbing pain - trigeminal neuralgia. Can also be damaged by varicella zoster virus reactivation.</p>
+<p>Abducens nerve damage leads to issues abducting the eye and horizontal diplopia instead of vertical</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 23 year old T1DM man comes into A&E presenting with an inability to lift his fingers. He spent the previous night partying and claims he can not remember anything after passing out on a chair. He admits to taking alcohol and ketamine. He is afebrile, normal heart rate and normal blood pressure. </strong></p>
+<p><strong>What is the most likely cause of his drooping hand?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Alcohol</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ketamine</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Diabetes</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Compartment Syndrome</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Nerve Palsy</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Nerve Palsy</strong></p>
+<p>This is wrist drop due to radial nerve palsy, likely caused by sleeping with the arm over the side of the chair compressing the nerve in the axilla. This specific phenomenon is called Saturday Night Palsy. </p>
+<p>Alcohol would present acutely as ataxia, confusion, nausea and vomiting instead of wrist drop.</p>
+<p>Ketamine would present as disorientation and drowsiness/K-hole</p>
+<p>Diabetes would not present as acutely and causes pain, numbness and tingling before weakness.</p>
+<p>There are no risk factors here for compartment syndrome and no mention of severe pain on passive stretching.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 5 year old child is brought to the doctors by his mother as she has noticed a red rash on his stomach. The rash consists of small, flat, red spots that do not blanch when pressed. Hepatosplenomegaly is found upon examination. </strong></p>
+<p><strong>What is the most appropriate next step?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Immediate Referral to Paediatrics</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Routine Referral to Paediatrics</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Oral Acyclovir for 2 weeks and exclude from school until lesions have crusted over</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Phenoxymethylpenicillin and 24 hour school exclusion</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Reassurance and Safety Netting</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Immediate Referral to Paediatrics</strong></p>
+<p>This needs to be urgently referred due to indication of malignancy – most likely acute lymphoblastic leukaemia. Any child with unexplained hepatosplenomegaly or petechiae must be urgently referred for this reason. </p>
+<p>A routine referral will not be appropriate for the urgency of managing a potential underlying childhood malignancy.</p>
+<p>Oral acyclovir can be used in cases of severe chickenpox. This presents with a pruritic rash that begins on the trunk. This does not explain the hepatosplenomegaly. They are recommended to exclude from school until lesions have crusted over.</p>
+<p>Phenoxymethylpenicillin is a treatment for Scarlet Fever. This presents with sandpaper rash, strawberry tongue and fever. This does not explain the hepatosplenomegaly. Children with Scarlet Fever should exclude from school for 24 hours.</p>
+<p>Reassurance and safety netting would not be appropriate for the reasons stated above. Differentials where this would be suitable would include roseola and hand, foot and mouth disease.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 41 year old woman presents with repeatedly runny nose that also gets blocked sometimes, causing a reduced sense of smell. She has a history of hypertension, asthma and chronic sinusitis. Her mother had rheumatoid arthritis and type 1 diabetes, so she is concerned that she may have a similar condition. </strong></p>
+<p><strong>Which of the following tests is most likely to come back positive? </strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Anti-Ro</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Anti-Centromere</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Anti-tTG</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">C-ANCA</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">P-ANCA</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: P-ANCA</strong></p>
+<p>P-ANCA is correct as this autoantibody is associated with Eosinophilic Granulomatosis with Polyangiitis, formerly known as Churg-Strauss Syndrome (but he was a nazi). The classic triad is asthma, eosinophilia and necrotising vasculitis (causing chronic sinusitis and nasal polyps). P ANCA is also associated with PSC.</p>
+<p>Anti-Ro is associated with Sjogren’s syndrome</p>
+<p>Anti-Centromere antibody is associated with CREST syndrome (limited cutaneous systemic sclerosis)</p>
+<p>Anti-tTG is associated with coeliac disease</p>
+<p>C-ANCA is associated with Granulomatosis with Polyangiitis formerly known as Wegener’s granulomatosis. This presents with a saddle nose, URTI & LRTI and kidney involvement (glomerulonephritis)</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 65 year old known alcoholic is profusely vomiting blood in A&E. He has end stage liver disease; heart rate of 127bpm and blood pressure of 104/71mmHg. He has been given terlipressin and prophylactic ciprofloxacin.</strong></p>
+<p><strong></strong> What is the next best step in management for this man?</p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Balloon Tamponade (Sengstaken-Blakemore tube)</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Endoscopic Band Ligation</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Transjugular Intrahepatic Portosystemic Shunt</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Intravenous Tranexamic Acid</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Lactulose and Rifaximin</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Endoscopic Band Ligation</strong></p>
+<p>Endoscopic band ligation is the next step after terlipressin in management of oesophageal varices.</p>
+<p>Balloon Tamponade (Sengstaken-Blakemore tube) is used next if haemorrhage is uncontrolled. It is rarely used in practice however, as it requires the patient to be unconscious.</p>
+<p>Transjugular Intrahepatic Portosystemic Shunt (TIPSS) is used last line by creating a bypass around the cirrhosed liver to relieve the portal system’s high pressure.</p>
+<p>There is new evidence that intravenous tranexamic acid is not an effective adjunct. Although some trusts still use TXA, it is not a stage of management in NICE guidelines</p>
+<p>Lactulose and rifaximin are treatments for hepatic encephalopathy</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 22 year old male student presents to the GP with bilateral painful swollen cheeks that extend down to the jaw. He has a fever, headache, general malaise and also mentions testicular pain. Upon further questioning, he denies recent sexual activity but mentions that his family are anti-vax.</strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Infective Mononucleosis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Syphilis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Measles</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Mumps</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Rubella</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Mumps</strong></p>
+<p>Painful cheek swelling is classic for mumps. Complications include orchitis, oophoritis, aseptic meningitis and pancreatitis. This normally presents in children but in the unvaccinated population, classically presents in adolescence. </p>
+<p>Infective mononucleosis is caused by the Epstein-Barr virus, commonly known as glandular fever or kissing disease. This presents with extreme fatigue, swollen lymph nodes, fever, severe sore throat, enlarged tonsils and can have hepatosplenomegaly</p>
+<p>Syphilis is a sexually transmitted infection that presents as a painless chancre. Secondary syphilis could present with fever and headache would cause a rash instead of swollen cheeks.</p>
+<p>Measles would present with a cough, conjunctivitis and Koplik spots (white lesions in the mouth) as well as the coryzal symptoms</p>
+<p>Rubella would present with a rash beginning behind the ear and spreading down to the trunk. Although the tender swollen cheeks could be explained by lymphadenopathy, this is normally postauricular and would not explain the orchitis.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 73 year old man comes into the GP with a 6 month history of breathlessness. When asked to hold both arms above his head, his face flushes red and swells up. He also becomes acutely more breathless.</strong></p>
+<p><strong>What is the most likely cause?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Anaphylactic Reaction</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Acute on Chronic Heart Failure</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Pulmonary Fibrosis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Aortic Regurgitation</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Lung Cancer</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Lung Cancer</strong></p>
+<p>This vignette describes superior vena cava syndrome as there is a positive Pemberton’s sign (face flushing and swelling when lifting arms above the head). The most common cause of superior vena cava syndrome is a cancer obstructing blood flow, often of lung origin. </p>
+<p>Anaphylactic reaction is incorrect. There is no trigger mentioned and this would not explain his history of breathlessness.</p>
+<p>Acute on chronic heart failure is incorrect because this does not explain the face flushing when the arms are elevated.</p>
+<p>Pulmonary fibrosis would not explain the facial flushing.</p>
+<p>Aortic regurgitation would cause a collapsing pulse when the arms are raised, instead of facial flushing and swelling.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 59 year old man has an INR of 0.8 during routine warfarin monitoring. He has a mechanical heart valve in place for severe aortic stenosis. His INR is normally within target range (2.5-3.5) but he has recently started a new medication.</strong></p>
+<p><strong>Which of the following could be the cause of his newly reduced INR?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Niacin</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Clarithromycin</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Lisinopril</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Carbamazepine</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Gabapentin</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Carbamazepine</strong></p>
+<p>Carbamazepine is an antiepileptic that is a potent CYP inducer. Inducing the CYP enzyme will increases the metabolism of CYP metabolised warfarin, decreasing its half-life and subsequently decreasing the INR (Calculated by Prothrombin Time) leading to insufficient anticoagulation.</p>
+<p>Niacin is a CYP inhibitor and will increase the INR by increasing warfarin’s half-life.</p>
+<p>Clarithromycin is also a CYP inhibitor and increase the INR</p>
+<p>Lisinopril is CYP independent and is safe to take alongside warfarin</p>
+<p>Gabapentin is also CYP independent and is safe to take alongside warfarin</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 83 year old man presents with a 2 month history of a red rash along his arms, thighs and abdomen. He says the rashes are itchy and form blisters but do not break when scratched. He denies taking any new medications, pets or travel. He is systemically well. The doctor prescribes corticosteroids which rapidly improve his condition.</strong></p>
+<p style="text-align:center;">
+  <img src="https://assets.nhs.uk/nhsuk-cms/images/S_0318_Bullous_pemphigoid_C0284417.original.max-600x600.jpg" 
+       style="max-width: 400px; width: 100%; height: auto;">
+</p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Atopic Dermatitis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Urticaria</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Pemphigus Vulgaris</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Bullous Pemphigoid</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Toxic Epidermal Necrolysis</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Bullous Pemphigoid</strong></p>
+<p>This is Bullous Pemphigoid, an autoimmune condition primarily affecting the elderly causing pruritic, tense bullae across the extremities and trunk. It occurs due to autoantibodies targeting hemidesmosomes and responds well to corticosteroids. </p>
+<p>Atopic Dermatitis is eczema, more common in children and adults instead of the elderly. Although it presents with a pruritic red rash, it typically affects skin creases and is associated with dryness more than blisters.</p>
+<p>Urticaria is a pruritic raised rash that do not last past 24 hours, normally caused by a trigger such as food medication or an infection.</p>
+<p>Pemphigus Vulgaris is also an autoimmune condition similar to bullous pemphigoid, but the blisters easily rupture and the mucous membranes are affected. There is positive Nikolsky sign and the autoimmune antibodies target desmogleins. Treatment of choice is high dose corticosteroids.</p>
+<p>Toxic Epidermal Necrolysis is a life threatening skin reaction where >30% of the skin detaches from the mucous membranes. The skin would peel off at touch (Positive Nikolsky sign) and the patient would be severely systemically unwell</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 36 year old woman presents with fatigue and palpitations. She mentions recent diarrhoea and heat intolerance. There is visible fine tremor and a goitre which is painful upon touch. She had a viral upper respiratory infection 3 weeks ago.</strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">De Quervain’s Thyroiditis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Sick Euthyroid Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hashimoto’s Disease</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Graves’ Disease</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Toxic Multinodular Goitre</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: De Quervain’s Thyroiditis</strong></p>
+<p>Fatigue, palpitations, heat intolerance and diarrhoea all indicate hyperthyroidism. The tender goitre and recent viral URTI reveal that the cause of her hyperthyroidism is De Quervain’s thyroiditis. This is a self limiting inflammation of the thyroid gland after a viral infection leading to a hyperthyroid phase, followed by a hypothyroid phase, followed by full recovery.</p>
+<p>Sick Euthyroid Syndrome is where the thyroid gland is functioning normally but T3 and T4 appear low on testing, presenting with hypothyroid symptoms. It is caused by severe illness/stress leading to the normal functioning thyroid gland producing less hormone.</p>
+<p>Hashimoto’s disease is an autoimmune thyroiditis which causes hypothyroidism not hyperthyroidism, and the goitre is painless</p>
+<p>Graves’ disease is an autoimmune disorder which although causes hyperthyroidism, the goitre would be painless. Other pathognomonic features such as exophthalmos would also be present</p>
+<p>Toxic Multinodular Goitre is less likely due to the history of viral infection and no mention of an irregular goitre. Also the goitre tends to be painless. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 15 year old girl presents with a 2 day history of severe right lower quadrant pain. She has lost her appetite. She has a history of recurrent tonsillitis with her last episode being 7 days ago. </strong></p>
+<p><strong>Which of the following diagnoses is most likely?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ovarian Torsion</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Appendicitis</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Mesenteric Adenitis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ectopic Pregnancy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Renal Colic</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Mesenteric Adenitis</strong></p>
+<p>The correct answer is Mesenteric Adenitis. Mesenteric Adenitis is the transient, self-limiting inflammation of the lymph nodes in the mesentery that can present as RLQ and umbilical pain after a respiratory infection, commonly in children and teens.</p>
+<p>Appendicitis is often mimicked by mesenteric adenitis. However, the mention of tonsilitis makes mesenteric adenitis more likely. Additionally, most cases will mention pain beginning in the umbilical region.</p>
+<p>Ovarian torsion is an important differential but simply rarer and presents more acutely, typically in those in their 20s-30s. Risk factors of an enlarged ovary (e.g. PCOS or ovarian cyst) will normally be mentioned. Confirmed via imaging with Transvaginal Ultrasound.</p>
+<p>Ectopic Pregnancy is an important cause to rule out. It can present in a variety of ways but in the history they will normally mention a missed or “late” period. An hCG should be done to rule this out but it is still epidemiologically less likely than mesenteric adenitis in this context.</p>
+<p>Renal Colic typically presents in older patients (30s-60s) with a more acute timeline of 10/10 pain. Risk factors such as a low fluid intake and a high protein diet would often be mentioned.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 18 year old male presents to A&E with sudden, severe anterior knee pain whilst playing basketball after jumping for a lay-up. He is completely unable to extend the knee joint (0/5 power) or weight bear. </strong></p>
+<p><strong>Which structure is most likely to have been damaged?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Achilles Tendon</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Anterior Cruciate Ligament</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Iliotibial Band</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Lateral Meniscus</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Patellar Tendon</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Patellar Tendon</strong></p>
+<p>Patellar Tendon is the correct answer as this is the only structure that would compromise the extensor mechanism. Patellar Tendon Rupture is an uncommon knee injury, usually damaged in jumping.</p>
+<p>Achilles Tendon Rupture would not present with knee pain</p>
+<p>ACL injury normally occurs from a sudden change in direction on a firmly planted foot. Typical examination findings would be excess forward translation of the tibia, tested via Lachman’s and anterior drawer. </p>
+<p>Iliotibial band damage tends to have a gradual onset due to overuse (in endurance athletes). Knee pain would typically be lateral.</p>
+<p>Lateral Meniscus injury typically occurs from twisting of the knee on a planted foot. Often occurs alongside the unhappy triad (ACL, MCL and Medial Meniscus tear)</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 22 year old woman loses consciousness for 2 minutes after skiing into a tree. She is urgently airlifted via helicopter to a nearby hospital where she receives a CT non-contrast which appears normal and she has marked neurological improvement. </strong></p>
+<p><strong>Which injury is the reason a follow-up CT is recommended?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Subdural Hematoma</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Epidural Hematoma</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Subarachnoid Haemorrhage</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Intracerebral Haemorrhage</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Intraventricular Haemorrhage</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Epidural Hematoma</strong></p>
+<p>This vignette describes the timeline of an epidural/extradural hematoma. This is because the loss of consciousness is followed by a “lucid interval”. Initial CT may appear normal, but the middle meningeal artery could still be bleeding and slowly cause increased ICP, coma and death due to mass effect. The second CT would show a lens-shaped hyperdensity. Emergency Craniotomy may be indicated.</p>
+<p>Subdural hematoma is typically in elderly patients following mild head injury, due to a bridging vein rupture.  Its timeline is more delayed and insidious and CT would show a banana shaped hyperdensity</p>
+<p>An SAH presents with a sudden headache that peaks < 5 mins at a severity described as the worst of their life. If suspected, a 12 hour LP is normally ordered instead of a follow-up CT.</p>
+<p>ICH is often spontaneous instead of being caused by trauma. Important risk factors include hypertension, vascular malformations and increasing age.</p>
+<p>Intraventricular haemorrhage primarily occurs in premature infants, although it can occur as an extension of an ICH.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 8 year old boy is brought to the GP by his father concerned that he is “acting strange”. His father describes repetitive head jerks and squinting alongside sniffling on most days over the past year, seeming to occur at random but worst during periods of stress. The boy claims he is trying to suppress these movements but seems relieved after they occur. Neurological exam is normal, besides the head jerks and frequent throat clearing. He is otherwise well. </strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Obsessive Compulsive Disorder</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Attention Deficit Hyperactivity Disorder</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Tourette’s Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Infantile Spasms</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Cerebral Palsy</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Tourette’s Syndrome</strong></p>
+<p>The description of involuntary, repetitive, uncomfortable tics for an extensive period of time, which also bring relief, is indicative of Tourette’s syndrome. It is more common in males and begins at a young age (around 5)</p>
+<p>OCD involves obsessions and compulsions and typically presents older. Although these movements could be argued as acts on intrusive thoughts, they fit better with tics, being both motor and vocal (sniffling and throat clearing).</p>
+<p>ADHD is characterised by inattention. The repetitive nature of the tics align better with Tourette’s. There is a strong association of ADHD with Tourette’s (60%).</p>
+<p>Infantile Spasms aka West Syndrome occurs much younger (3-8 months) who have “salaam attacks” which are seizures that cause babies to flex and extend their back and arms in synchrony. It carries a poor prognosis.</p>
+<p>Cerebral Palsy would typically present earlier when babies and toddlers don’t hit their gross motor developmental milestones, such as failing to sit at 8 months, crawl by 10, or walk by 18. Neurological examination would find abnormal tone, hyperreflexia and a positive Babinski sign.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 61 year old man presents to A&E with nausea, vomiting and severe abdominal pain. An A-E assessment shows Kussmaul breathing with a BP of 95/58 mmHg, blood glucose of 21.1mmol/l and pH of 7.21. He is treated immediately with IV saline and an insulin infusion, but subsequently falls into ventricular fibrillation. He was successfully defibrillated and the underlying cause was treated.</strong></p>
+<p><strong>What was the cause of the cardiac event?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Myocardial Infarction</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Disseminated Intravascular Coagulation</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Pulmonary Embolism</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Hypokalaemia</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypoglycaemia</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Hypokalaemia</strong></p>
+<p>The correct answer is hypokalaemia, secondary to administration of insulin which drives potassium back into cells via the Na+/K+ pump. This causes a prolonged QT that can lead to ventricular arrhythmias. Due to this risk, K+ must be monitored regularly, and potassium should be given in fluids with caution after the first litre of saline.</p>
+<p>A myocardial infarction is unlikely to have occurred as there is no causative event or mention of atherosclerosis.</p>
+<p>Disseminated Intravascular Coagulation can occur in DKA, but would present with bleeding and would not be the cause of VFib</p>
+<p>Although a PE could cause cardiac arrest, there are no risk factors</p>
+<p>Hypoglycaemia may occur after insulin therapy. Once blood glucose drops below 14mmol/l, 10% dextrose should be started to prevent hypoglycaemia. Hypoglycaemia would be a rare cause of cardiac arrest.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 49 year old woman presents with a 1 year history of gradually worsening hearing in her left ear. She reports tinnitus, dizziness and vertigo. Examination reveals left sided facial weakness and numbness, and unilateral sensorineural hearing loss.</strong></p>
+<p><strong>Which of the following options is the most appropriate next step?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">MRI Scan</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IV Prednisolone</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">CT Head </button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Oral Acyclovir</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Gentamicin</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: MRI Scan</strong></p>
+<p>The likely diagnosis is Acoustic Neuroma (aka Vestibular Schwannoma) which is a slow growing benign tumour of the myelin sheath of the vestibular nerve. MRI is the firstline investigation.</p>
+<p>Head CT would be indicated for strokes and head injuries. A CT of the internal auditory meatus could be indicated for sensorineural hearing loss but is preferred for visualising bony detail instead of soft tissue (MRI)</p>
+<p>IV Prednisolone is indicated in Sudden Sensorineural Hearing Loss. This history is too long for SSNHL. Oral prednisolone would be indicated for Bell’s Palsy. This would not present with CNVIII symptoms.</p>
+<p>Oral Acyclovir is sometimes used as an adjunct for SSNHL and can be used for Ramsay Hunt Syndrome (reactivation of varicella zoster virus in the facial nerve) but this would present with a rash and pain.</p>
+<p>Gentamicin is an aminoglycoside that can be given for otitis externa (as drops), UTI and some pneumonias. It is known to cause sensorineural hearing loss by damaging inner ear hair cells.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 19 year old woman presents to the gynaecologist with amenorrhoea over the past 6 months. She reached menarche at 11 and her periods are normally a regular 30 day cycle. Upon examination she has puffy cheeks, eroded teeth and calluses on her left hand. She admits to having an eating disorder. Her BMI is 23kg/m2. Her blood test results are shown below:</strong></p>
+<p>Hb: 117g/L               (115-160)</p>
+<p>MCV: 82fl 		    	(82-100)</p>
+<p>>Na+: 141mmol/L           (135-145)</p>
+<p>K+: 3.1mmol/L            (3.5-5.0)</p>
+<p>Urea: 4.7mmol/L 	    	(2.0-7.0)</p>
+<p>Creatinine: 78umol/L     (55-120)</p>
+<p>Chloride: 84 mmol/L  	(95-105)</p>
+<p>CRP: 1mg/L 			    (< 5)</p>
+<p>Bicarbonate: 34mmol/L    (22-29)</p>
+<p>Oestradiol: 20pg/ml 		(30-400)</p>
+<p>FSH: 2mlU/ml             (3-9)</p>
+<p>LH:  1 mlU/ml 		    (2-10)</p>
+<p><strong></strong></p>
+<p><strong>Given the most likely diagnosis, what is the firstline treatment?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Sertraline</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Iron Supplementation</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Family Based Therapy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Oestrogen Replacement Therapy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Cognitive Behavioural Therapy</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Cognitive Behavioural Therapy</strong></p>
+<p>CBT is the correct answer. This is the firstline treatment for Bulimia Nervosa, an eating disorder characterised by a cycle of binge eating and purging. Evidence of purging includes parotid gland swelling, dental enamel erosion, and Russell’s sign (calluses on knuckles). This is confirmed by the hypokalaemic, hypochloraemic, metabolic alkalosis seen on the blood results. This can cause secondary amenorrhea by suppressing the hypothalamus from releasing FSH and LH.</p>
+<p>Sertraline is incorrect. SSRI’s are second line for Bulimia Nervosa and fluoxetine is preferred. </p>
+<p>Iron Supplementation is not indicated. Her Hb is within normal range so she does not have iron deficiency anaemia, even though her MCV is on the lower boundary. </p>
+<p>Family Based Therapy is a good alternative for CBT. It is firstline for Anorexia Nervosa in adolescents. These patients would have a significantly low BMI. However it is second line for Bulimia Nervosa. </p>
+<p>Oestrogen Replacement Therapy would be indicated for primary amenorrhea, e.g. Primary Ovarian Insufficiency. This causes menopause before 40. And would not present with this set of electrolytes.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 49 year old male presents to the GP with a 3 day history of dyspnea. He has a HR of 94bpm, RR of 20 breaths per minute, temperature of 39.2° and BP of 124/91mmHg. Examination reveals bronchial breathing and dullness to percussion of the left lower base. Chest X-ray shows left lower lobe consolidation. He is a known HIV-positive patient and has never smoked.</strong></p>
+<p><strong>His HIV viral load was monitored last week:</strong></p>
+<p>Viral load: U=U</p>
+<p><strong>What is the most likely causative organism?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">HIV</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Streptococcus Pneumoniae</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Haemophilus Influenzae</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Staphylococcus Aureus</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Pneumocystis Jirovecii Pneumonia</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Streptococcus Pneumoniae</strong></p>
+<p>The correct answer is Streptococcus Pneumoniae. This is the most common cause of pneumonia. CXR consolidation alongside breathlessness and infection heavily indicates a diagnosis of pneumonia.</p>
+<p>HIV is incorrect. HIV itself does not cause pneumonia, and his viral load is undetectable (U=U).</p>
+<p>Haemophilus Infuenzae is the most common cause of COPD exacerbations. This patient has pneumonia and is a never smoker, so there is no indication of COPD.</p>
+<p>Staphylococcus Aureus is a less common cause of severe pneumonia, most notably is younger children with CF.</p>
+<p>Pneumocystis Jirovecii Pneumonia is an opportunistic fungal cause of pneumonia in HIV patients with a CD4 count below 200 cells/mm3. This patient has an undetectable viral load, so his CD4 count should not be low. Although he has HIV, he does not have AIDS.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 29 year old female patient attends an ECG screening for a nationwide research program. She has no past medical history. Her ECG is shown below:</strong></p>
+<p style="text-align:center;">
+  <img src="data:image/jpeg;base64,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" 
+       style="max-width: 400px; width: 100%; height: auto;">
+</p>
+<p><strong>What is the most appropriate next step in management?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Bisoprolol</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Apixaban</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">24 hour Holter monitor</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Amiodarone</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Reassure and safety net</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Reassure and safety net</strong></p>
+<p>This is 2nd degree heart block, Mobitz Type 1. This can be seen by the steadily increasing PR interval followed by a dropped QRS. This is a benign variant found particularly in young athletes. 1st degree heart block and Mobitz type 1 do not require treatment as they rarely progress into complete heart block. However, Mobitz type 2 can progress to complete heart block and thus requires urgent pacing (normally permanently).</p>
+<p>Bisoprolol is incorrect. Bisoprolol is a beta blocker that will worsen the bradycardia.</p>
+<p>Apixaban is incorrect. In the context of ECG questions, this is used for stroke prophylaxis in AF.</p>
+<p>24 hour Holter monitor is also incorrect. We can see the abnormality here and this would instead be indicated if an unseen paroxysmal SVT is suspected. Remember this patient presented at a screening, not due to symptoms.</p>
+<p>Amiodarone is incorrect. Amiodarone is used in refractory ventricular arrhythmias and Afib with either structural heart defects or HFrEF.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>Which of the following conditions is least likely to increase the risk of cancer?</strong></p>
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Benign Prostatic Hyperplasia</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Dermatomyositis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Human Papillomavirus Infection</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Cirrhosis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ulcerative Colitis</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Benign Prostatic Hyperplasia</strong></p>
+<p>There is currently no evidence that BPH increases risk of cancer. BPH is a noncancerous enlargement of the transitional zone of the prostate, and has completely separate aetiology to prostate cancer.</p>
+<p>Dermatomyositis is an autoimmune disease that is strongly associated with an increased risk of malignancy, and therefore a diagnosis typically triggers a comprehensive cancer screening</p>
+<p>HPV 16 & 18 cause almost all cervical cancers. HPV vaccine is effectively reducing the incidence of cervical cancer and genital warts</p>
+<p>Cirrhosis is the primary risk factor for developing hepatocellular carcinoma.</p>
+<p>IBD doubles the risk of bowel cancer. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 20 year old boy presents with a 4 hour history of severe left testicular pain that began whilst playing football. The testicle is high riding and there is a negative Prehn’s sign.</strong></p>
+<p><strong> What is the most appropriate next step in management? </strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ofloxacin 14 days</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IM Ceftriaxone Single Dose and Doxycycline 14 days</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Bilateral Orchidopexy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Urgent Left Orchidectomy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Reassure and Safety Net</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Bilateral Orchidopexy</strong></p>
+<p>This is testicular torsion requiring immediate surgical exploration and most likely a bilateral orchidopexy, where the testicles are fixed in place. Testicular torsion can be differentiated from epididymo-orchitis by the negative Prehn’s sign (elevation of the testes alleviates pain) and the high riding nature of the testicle. The short time frame and physical activity support this diagnosis.</p>
+<p>Ofloxacin is indicated for non STI epididymo-orchitis, normally in older patients where the suspected causative organism is E Coli. 14 day prescription is needed to penetrate the testes.</p>
+<p>IM Ceftriaxone Single Dose and Doxycycline 14 days is indicated for STI associated epididymo-orchitis when the causative organism is unknown. Ceftriaxone covers Neisseria Gonorrhoea and Doxycycline covers chlamydia.</p>
+<p>Urgent Left Orchidectomy is incorrect because although surgery is indicated, orchidectomy is the removal of the testicle. Orchidopexy (fixation of the testicles) is needed instead. In addition, surgery would be bilateral instead of unilateral to prevent contralateral torsion. </p>
+<p>Reassure and safety net is incorrect as testicular torsion is a medical emergency that leads to irreversible infarction of the testes.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong> A 56 year old male attends the Sexual Health Clinic in Manchester. His serology results are shown below:</strong></p>
+<p>HBsAg: 	    	Positive</p>
+<p>HBeAg: 		    Negative</p>
+<p>Anti-HBc IgG: 	Positive</p>
+<p>Anti-HBc IgM: 	Negative</p>
+<p>Anti-HBs: 		Negative</p>
+<p><strong>What is the correct interpretation of his serology results?</strong></p>
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Acute Hepatitis B Infection</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Chronic Hepatitis B Infection</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Previous Hepatitis B vaccination</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Previous Hepatitis B Infection</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hepatitis B coinfection</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Chronic Hepatitis B Infection</strong></p>
+<p>These results show a chronic Hep B infection. Presence of HBsAg indicates active infection. Presence of Anti-HBc IgG instead of IgM indicates that it is chronic.</p>
+<p>Acute Hepatitis B infection would have positive HBsAg but Anti-HBc IgM instead of IgG. HbeAg is also more likely to be positive.</p>
+<p>Previous vaccination would have positive Anti-HBs and therefore negative HBsAg (as the patient would not be able to be infected by Hep B). Most importantly Anti-HBc IgG and IgM would be negative as the vaccine does not trigger these antibodies to be made, unlike a true infection.</p>
+<p>Previous infection would have positive Anti-HBs and positive core antibodies, as explained above.</p>
+<p>There is no indication of coinfection which is most notable Hep D. However, now that we know has a chronic Hep B infection, we should test for Hep D (antibodies and then PCR of the RNA to confirm)</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>You encounter a child who appears unconscious on a park bench in the middle of the day. She does not respond to your voice or shaking. You shout for help and lift her chin. You are unsure if she is breathing. </strong></p>
+<p><strong>What is the next step of basic life support?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Call 2222</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">5 rescue breaths followed by 15 compressions spaced between 2 breaths</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">30 compressions spaced between 2 rescue breaths</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">5 rescue breaths followed by 30 compressions spaced between 2 breaths</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">5 rescue breaths followed by uninterrupted compressions</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: 5 rescue breaths followed by 15 compressions spaced between 2 breaths</strong></p>
+<p>This is a case of paediatric basic life support and should be ingrained into your brain. Begin with 5 rescue breaths followed by a 15:2 compression: ventilation ratio. Simultaneously ask any nearby help to call 999 for a suspected cardiac arrest and to look for a defibrillator, and to ask for more help in case you get fatigued. </p>
+<p>Calling 2222 would be inappropriate as this is outside the hospital</p>
+<p>30 compressions spaced between 2 rescue breaths would be appropriate for an adult</p>
+<p>5 rescue breaths followed by 30 compressions spaced between 2 breaths is appropriate for a suspected drowning</p>
+<p>Uninterrupted compressions are suitable if the bystander does not know how to perform rescue breaths</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 38 year old female sickle cell patient is having a blood transfusion for an aplastic crisis. 2 minutes into the transfusion, she has severe abdominal pain, appears sweaty and feverish, and her blood pressure has dropped to 90/60. </strong></p>
+<p><strong>What is the next best step in management?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Stop the transfusion and flush IV saline</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Check for mismatch of the blood bag</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Send blood for Direct Coombs Test and Crossmatching</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">A-E assessment</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Prop the patient’s legs upwards</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Stop the transfusion and flush IV saline</strong></p>
+<p>The first step of management in a transfusion associated reaction is to stop the transfusion. Flushing IV saline is also standard (fluid resuscitation for hypotension secondary to transfusion reaction). This is an acute haemolytic reaction due to ABO incompatibility. This is a never event due to human error. </p>
+<p>Checking for a mismatch of blood product will be part of the management, but saving the patient is the priority.</p>
+<p>Sending blood for DAT and Crossmatch will confirm the diagnosis in the future.</p>
+<p>A-E assessment is also vital but should be done after stopping the transfusion as the indications of a transfusion reaction are already sufficient evidence.</p>
+<p>Propping the legs upwards may be part of the A-E assessment in order to increase blood flow to the major organs such as the heart and brain.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 79 year old male presents to the GP due to the following abnormal result on a routine blood test:</strong></p>
+<p>Na+: 124mmol/L 	(135-145)</p>
+<p><strong>All other results were within normal range.</strong></p>
+<p><strong>He shows no signs of hypovolaemia. He has a 40 pack year smoking history and a 6 month history of dry cough and weight loss.</strong></p>
+<p><strong>What is the most likely cause of his hyponatremia?</strong></p>
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Liver Failure</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Diabetes Insipidus</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypothyroidism</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Lambert Eaton Syndrome</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">SIADH</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: SIADH</strong></p>
+<p>The most likely cause of hyponatremia in this patient is Small Cell Lung Cancer. He has a significant smoking history, weight loss and a long standing cough. The hyponatremia has occurred due to a paraneoplastic syndrome – SIADH. ADH is secreted ectopically by the tumour cells, causing water retention, diluting the blood and lowering Na+ levels.</p>
+<p>Liver failure is a cause of hyponatremia, but this would present with jaundice, RUQ pain, clotting abnormalities, ascites and confusion.</p>
+<p>Diabetes Insipidus causes hypernatremia by excessively excreting dilute urine. This can be either central (ADH is not secreted) or nephrogenic (kidneys are not responding to ADH)</p>
+<p>Hypothyroidism is another cause of hyponatremia by reducing GFR and the excretion of urine.</p>
+<p>Lambert Eaton Syndrome is another paraneoplastic syndrome strongly linked to Small Cell Lung Cancer, but it presents with muscle weakness that improves with activity. It is an autoimmune disease that targets presynaptic voltage gated calcium channels in the Neuromuscular Junction.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 38 year old female patient had a thyroidectomy due to ongoing Graves’ disease. She notices she has a hoarse voice after the surgery. </strong></p>
+<p><strong>Which nerve is most likely to have been damaged?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Superior Laryngeal Nerve</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">External Laryngeal Nerve</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Recurrent Laryngeal Nerve</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Glossopharyngeal Nerve</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ansa Cervicalis</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Recurrent Laryngeal Nerve</strong></p>
+<p>The recurrent laryngeal nerve is a branch of CNX at risk of damage during thyroidectomy. The RLN innervates the speech muscles in the larynx (apart from cricothyroid) and therefore damage can cause a hoarse voice. Note that a hoarse voice after thyroidectomy can also be normal, occurring without nerve damage.</p>
+<p>Superior Laryngeal Nerve branches into the External Laryngeal Nerve and Internal Laryngeal Nerve. The ELN provides motor innervation to the cricothyroid muscle. The ILN provides sensory innervation to the larynx.</p>
+<p>The Glossopharyngeal nerve is CNIX which mainly provides sensory innervation to the pharynx. Its only motor function is to innervate stylopharyngeus.</p>
+<p>Ansa Cervicalis is a loop of nerves formed from C1-3. It innervates the infrahyoid muscles sternohyoid, sternothyroid and omohyoid.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 18 year old asthmatic man is sent to ICU due to a severe asthma exacerbation. Despite medical intervention, his arterial blood gas reveals respiratory acidosis and BiPAP is started. His SpO2 improves from 72% to 90% but then deteriorates rapidly within the following 3 minutes. He is visibly cyanosed, HR is 131 bpm, BP is 82/61mmHg and capillary refill time is 9 seconds. His lung sounds are too quiet to be auscultated.</strong></p>
+<p><strong>What is the most likely cause of his rapid deterioration?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Acute Respiratory Distress Syndrome</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Tension Pneumothorax</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Anaphylaxis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Cardiac Tamponade</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Respiratory Muscle Fatigue</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Tension Pneumothorax</strong></p>
+<p>The NIV has caused a tension pneumothorax. NIV such as BiPAP can cause barotrauma to the lungs, which can lead to sudden deterioration, especially if mediastinal shift impairs venous return to the heart, causing obstructive shock.</p>
+<p>Acute respiratory distress syndrome can cause sudden deterioration but not within 3 minutes, and is not caused by NIV. It is most commonly caused by sepsis and heart failure. Crackles will be heard instead of absent lung sounds</p>
+<p>Cardiac Tamponade would present with a raised JVP and muffled heart sounds. There is also no mention of heart problems that would predispose tamponade in a young male. Note that JVP likely is raised in this situation as the tension pneumothorax prevents SVC return into the right atrium. Lung sounds would be present.</p>
+<p>Respiratory muscle fatigue is a possible cause of asthmatic deterioration, but the sudden timeframe and severity of shock are more suggestive of a tension pneumothorax</p>
+<p>Anaphylactic shock would have red peripheries. While a possibility, it is a less likely complication of NIV than barotrauma</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 79 year old man presents to the GP with frank haematuria. He reports a mild increase in urinary frequency but no pain and feels well overall. He has a 40 pack year smoking history. </strong></p>
+<p><strong>What is the most likely cause of his haematuria?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Transitional Cell Carcinoma of the Bladder</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Acute Tubular Necrosis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Renal Cell Carcinoma</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Urinary Tract Infection</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Squamous Cell Carcinoma of the Bladder</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Transitional Cell Carcinoma of the Bladder</strong></p>
+<p>The most common cause of painless haematuria in over 65s is bladder cancer. 90% of bladder cancers are transitional cell carcinomas. Smoking is also the primary risk factor, accounting for 65% of all cases.</p>
+<p>Acute Tubular Necrosis can have muddy brown casts in the urine. However ATN would cause an AKI and therefore a decreased urinary output. There will be a clear trigger such as hypotension or surgery.</p>
+<p>Squamous cell carcinoma of the bladder is much rarer than transitional cell carcinoma</p>
+<p>Renal cell carcinoma is less common and often presents with unilateral flank pain and mass </p>
+<p>Although there is an increase in urinary frequency, there is no dysuria or mention of fever to indicate UTI. It is also less likely to cause frank haematuria.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 12 year old boy has an annual colonoscopy due to a strong family history of early onset colorectal cancer. Colonoscopy reveals thousands of identical adenomatous polyps.</strong></p>
+<p><strong>What is the most appropriate definitive management?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Total Proctocolectomy </button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hartmann’s Procedure</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">FOLFOX regimen</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">PET scan</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Genetic Testing</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Total Proctocolectomy </strong></p>
+<p>This is Familial Adenomatous Polyposis (FAP) which is an autosomal dominant condition that has a 100% chance of leading to colorectal cancer. Therefore surgical intervention to remove the colon and rectum is indicated.</p>
+<p>Hartmann’s procedure is a sigmoidectomy with end colostomy. It is used in emergencies with issues specific to the terminal colon. </p>
+<p>PET scan is not indicated as the diagnosis has been made and malignancy is unlikely. It may be used to check for suspected adenocarcinoma after proctocolectomy alongside CT TAP. It is also not a form of definitive management.</p>
+<p>FOLFOX is a chemotherapy regimen used for colorectal cancer composed of 5-Fluorouracil, Leucovorin and Oxaliplatin. Surgery is primarily used for FAP. FOLFOX may be used if there is evidence of metastasis.</p>
+<p>Genetic Testing is unnecessary as the diagnosis has been made and it is also not a form of management</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 61 year old woman complains of bony aches, constipation, muscle weakness and fatigue. She passed a small kidney stone 1 week ago. She mentions she has had a low mood and difficulty concentrating for the past few months. Physical examination is unremarkable.</strong></p>
+<p><strong>Her blood results are shown below:</strong></p>
+<p>Hb: 116g/L 			(115-160)</p>
+<p>MCV: 90fl 			(82-100)</p>
+<p>Na+: 140mmol/L 		(135-145)</p>
+<p>K+: 4.7mmol/L 		(3.5-5.0)</p>
+<p>Ca: 2.9mmol/L		(2.1-2.6)</p>
+<p>Phosphate: 0.7mmol/l	(0.8-1.4)</p>
+<p>PTH: 70ng/L			(10-65)</p>
+<p>Vitamin D: 102nmol/L	(>25)</p>
+<p><strong>What is the most likely cause of her symptoms?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Primary Hyperparathyroidism</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Secondary Hyperparathyroidism</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Renal Cell Carcinoma</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Multiple Myeloma</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypervitaminosis D</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Primary Hyperparathyroidism</strong></p>
+<p>This woman presents with the classic stones, moans, groans and psychiatric overtones – a set of symptoms of hypercalcemia. The most common cause of hypercalcemia is primary hyperparathyroidism, this is the only explanation for the PTH result. Note that even if PTH was normal, this would imply primary hyperparathyroidism as it should be low due to negative feedback.  Postmenopausal women are most at risk. The next most common cause of hypercalcemia is malignancy.</p>
+<p>Secondary Hyperparathyroidism is primarily caused by CKD and results in low calcium. This is due to inability to activate vitamin D needed to absorb calcium. </p>
+<p>Renal Cell Carcinoma is an important differential here as a cause of hypercalcemia. Although the classic triad presents with gross haematuria, flank pain and a palpable abdominal mass, this is actually quite rare - appearing in less than 15% of cases. However the high PTH in the setting of a high calcium suggests an alternative aetiology.</p>
+<p>Multiple myeloma is also an underdiagnosed differential for hypercalcemia. There is no suggestion of renal impairment and PTH result implies an alternative diagnosis. Even if she was anaemic, it would be more likely incidental. </p>
+<p>Hypervitaminosis D is almost always exclusively a distractor answer choice. Requiring levels >150ng/mL, it is almost never the cause of hypercalcemia. If it is, they will make it super obvious (typically an old lady taking lots of vitamin D pills)</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 66 year old male complains of central chest tightness whilst walking uphill. The symptoms are worse in the cold and subside with rest. He has a history of smoking, hypertension, hyperlipidaemia and obesity. He currently takes atorvastatin and amlodipine.</strong></p>
+<p><strong>Which drug should be prescribed next?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Verapamil</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Isosorbide Mononitrate</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Nicorandil</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Rivaroxaban</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Glyceryl Trinitrate</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Glyceryl Trinitrate</strong></p>
+<p>The central chest pain (described as tightness here) alleviated by rest alongside classic risk factors make stable angina the most likely diagnosis.</p>
+<p>The firstline drug treatment for stable angina is sublingual glyceryl trinitrate for symptomatic relief. Also known as a GTN spray, this causes NO release which is a strong vasodilator.</p>
+<p>Verapamil is a non-dihydropyridine CCB that is used in the treatment of angina. However, this patient is already on another CCB, amlodipine. </p>
+<p>Isosorbide Mononitrate is a long acting nitrate. These are used as a monotherapy second-line for angina if CCB’s and beta blockers are contraindicated.</p>
+<p>Nicorandil is a K+ channel activator and also a nitrate vasodilator. It is used as a monotherapy second-line for angina if CCB’s and beta blockers are contraindicated.</p>
+<p>Rivaroxaban is a Xa inhibitor DOAC used to prevent VTE. Indications include PE and AFib.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 40 year old woman presents with an 8 hour history of constant, severe RUQ pain radiating to the right shoulder. She vomited 8 hours ago. She appears flushed and sweaty. During deep palpation of the RUQ, her inhalation abruptly stops. </strong></p>
+<p><strong>The triage nurse takes her vitals:</strong></p>
+<p>HR: 114bpm></p>
+<p>Temperature (tympanic): 38.9 ºC</p>
+<p>BP: 134/69 mmHg</p>
+<p>SpO2: 97%</p>
+<p>Breathing Rate: 16 breaths per minute</p>
+<p><strong>What is the most likely causative organism?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Clostridium difficile</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Helicobacter pylori</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Salmonella</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Campylobacter jejuni</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Escherichia coli</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Escherichia coli</strong></p>
+<p>This patient has acute cholecystitis, a clinical diagnosis (sometimes supported by ultrasound). They have an acute history of RUQ pain, diaphragmatic irritation, vomiting and positive Murphy’s sign. The most common cause of acute cholecystitis is E Coli.</p>
+<p>Clostridium difficile causes diarrhoea in hospitalised and elderly patients. </p>
+<p>H. Pylori causes peptic ulcer disease. The fever, constant pain, right shoulder radiation and Murphy’s sign point away from a PUD diagnosis.</p>
+<p>Salmonella causes a gastroenteritis picture, with abdominal cramping, nausea and diarrhoea (sometimes bloody). The pain history does not fit with this diagnosis.</p>
+<p>Campylobacter jejuni is the most common bacterial cause of gastroenteritis, particularly from poultry (even though more people have heard of salmonella). </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 81 year old male inpatient at the cardiology ward with known left heart failure has desaturated from 96% to 90% SpO2. He is acutely breathless. His BP is 156/91mmHg and HR is 98bpm. CXR is shown below.</strong></p>
+<p style="text-align:center;">
+  <img src="https://prod-images-static.radiopaedia.org/images/25120924/05eb2206cd3206753066cec3586c16_big_gallery.jpeg" 
+       style="max-width: 400px; width: 100%; height: auto;">
+
+<p><strong>What is the most appropriate next step in management?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Indwelling Pleural catheter</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">IV Furosemide</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IV Corticosteroids</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Urgent Referral to Cardiology</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IV Dobutamine</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: IV Furosemide</strong></p>
+<p>The history reveals acute on chronic heart failure. The CXR shows blunted costophrenic angles, cardiomegaly, upper lobe vascular redistribution and bilateral hazy opacities which are all signs of cardiogenic pulmonary oedema. Haemodynamically stable patients with symptoms or signs of congestion should be given loop diuretics, such as furosemide. </p>
+<p>An indwelling pleural catheter is used to drain recurrent pleural effusions. Although there is evidence of effusion on the CXR, these are typically used to treat malignant pleural effusions for home management, not in the acute setting.</p>
+<p>IV Corticosteroids can be used for other causes of breathlessness such as asthma, COPD and ARDS (although oral steroids are often preferred).</p>
+<p>Urgent Referral to Cardiology would be appropriate if the patient was haemodynamically unstable, desaturated < 90% despite O2 supplementation, altered mental status or other signs of severity. Additionally, this patient is already in a cardiology ward.</p>
+<p>IV Dobutamine could be considered if the patient was hypotensive to increase cardiac output and systemic perfusion.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A middle aged female patient is brought into A&E after bystanders saw her collapsed on the road. She only reacts to trapezius squeeze. Palmar erythema and Dupuytren’s contracture can be seen on her hands. Scratch marks and needle marks are seen on the arm. Her pupils are < 2mm, equal, jaundiced and sluggish to react to light. She has reduced reflexes bilaterally. Her HR is 58 bpm and her breathing rate is 9 breaths per minute. </strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Alcohol Intoxication</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hepatic Encephalopathy</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Opioid Overdose</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">GHB Intoxication</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Ketamine Overdose</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Opioid Overdose</strong></p>
+<p>The correct answer is opioid overdose. Although cognitive impairment can be seen in all options (she is P on the ACVPU scale), the combination of miosis, hyporeflexia, bradycardia and bradypnea indicate opioid overdose. The signs of hepatic impairment increase the risk of overdose. Treatment involves naloxone.</p>
+<p>Alcohol is likely to be a contributing factor to the hepatic impairment. However the pupil examination does not fit.</p>
+<p>Hepatic encephalopathy is possible, and there are signs of impairment. Although there is no mention of coagulopathy, ascites, blood tests should be done to rule out acute liver failure. However, acute liver failure does not cause pinpoint pupils.</p>
+<p>GHB Intoxication is a difficult differential to rule out from opioid overdose. Also known as the date-rape drug, it is important to not rule it out of its typical club setting. Pupil size will remain unchanged and a pattern of abrupt awakening from deep coma tends to occur instead of a steady state of cognitive depression.</p>
+<p>Ketamine causes tachycardia and hypertension. It does not cause respiratory depression.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 90 year old man with metastatic lung cancer attends pleural clinic for recurrent pleural effusions.</strong></p>
+<p><strong>Which of the following results are most likely to be found in this patient?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">High SAAG</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Low Pleural Protein</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Bat Wing Sign</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Purulent Pleural Fluid</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">High Pleural LDH</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: High Pleural LDH</strong></p>
+<p>Lung cancer causes an exudative pleural effusion. This results in high pleural protein and pleural LDH as these are leaked by capillaries. Additionally, normal pleural drainage is impaired. Therefore High Pleural LDH is correct.</p>
+<p>Low Pleural Protein is incorrect for the reason stated above.</p>
+<p>SAAG is typically used in ascites. A High SAAG would indicate a high difference in albumin, indicating a transudative cause. </p>
+<p>Bat-wing shadowing is a sign of pulmonary oedema in CXR</p>
+<p>Purulent pleural fluid can be seen in infective causes of effusion such as empyema.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 33 year old male presents to ED 5 hours after completing Manchester Marathon when he noticed that his urine was very dark. He has severe calf stiffness and tenderness. </strong></p>
+<p><strong>Urine dip shows:</strong></p>
+<p>Blood +++</p>
+<p><strong>No blood is visualised upon microscopy, and creatine kinase was markedly elevated.</strong></p>
+<p><strong>Given the likely diagnosis, what is the most appropriate management?</strong></p>
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Quinine</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Temporary dialysis</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">IV Saline</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Urgent Fasciotomy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IM Diclofenac</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: IV Saline</strong></p>
+<p>The dark urine post intense exercise creates a suspicion of rhabdomyolysis. Although the calf stiffness and tenderness could have been caused by the marathon without rhabdo, markedly elevated creatine kinase confirms rhabdomyolysis. Blood is not visualised on microscopy due to myoglobinuria, which causes a false positive blood on urine dip. </p>
+<p>The firstline treatment for rhabdomyolysis is aggressive hydration with IV saline to prevent AKI. </p>
+<p>Quinine is not used in rhabdo management. It can be used to treat muscle cramps (and malaria) but is not routinely given due to cinchonism. This encompasses tinnitus, headaches, nausea and blurred vision.</p>
+<p>Temporary dialysis may be used in life threatening cases. There are no indications that this is life threatening, and initial management with IV saline would be performed regardless. </p>
+<p>Urgent Fasciotomy would be indicated in acute compartment syndrome. This would present much more severely with pain being the presenting complaint instead of dark urine. Additionally, there is nothing in the history that could cause compartment syndrome. </p>
+<p>IM Diclofenac is used as an analgesic in kidney stones. RBC’s would be present on microscopy and the elevated CK would be unexplained.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 67 year old man presents with a 30 second episode of syncope after playing padel with his colleagues. He reports no prodromal symptoms and recovered rapidly. He can not identify a trigger for the episode. </strong></p>
+<p><strong>What is the most likely cause of his syncope?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Vasovagal syncope</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Transient Ischemic Attack</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Focal Impaired Awareness Seizure</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Cardiogenic Syncope</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypoglycaemia</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Cardiogenic Syncope</strong></p>
+<p>This is most likely cardiogenic syncope due to the short duration, lack of prodromal symptoms and rapid recovery. He likely has a bradyarrhythmia or a structural heart abnormality such as aortic stenosis which would not be uncommon in his age group. Additionally this is in the context of exercise (although calling Padel an exercise is a push)</p>
+<p>Vasovagal syncope is also a good differential. However this would normally involve a prodrome of light-headedness and visual changes, as well as a clear trigger such as a stressful/emotional event or a long period of standing (instead of exertion).</p>
+<p>Transient Ischemic Attacks will present with stroke symptoms such as facial drooping, limb weakness, slurred speech and visual changes. Although these symptoms would fully recover in 24 hours, the recovery would not be as rapid as cardiogenic syncope.</p>
+<p>A Focal Impaired Awareness Seizure could fit in this time frame. However a post ictal period of confusion and fatigue is typical and there is no collateral history of repetitive movements. The preceding exercise also points towards a diagnosis of cardiogenic syncope.</p>
+<p>Hypoglycaemia is unlikely as prodromal symptoms of shakiness, sweating and confusion. This most often occurs in diabetics who have skipped meals or taken too much insulin. Symptoms take much longer than half a minute to resolve without intervention. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 30 year old female journalist returns from a 2 month press trip in Western Africa. She has a periodic fever, headache and rigors. She says she has not taken malarial prophylaxis. </strong></p>
+<p><strong>What is the gold standard diagnosis for suspected malaria?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Rapid Diagnostic Test</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Plasmodium DNA PCR</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Blood Cultures</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Urinary Antigen Test</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Thick and Thin Blood Films</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Thick and Thin Blood Films</strong></p>
+<p>Malaria is diagnosed by thick and thin films. These use a Giemsa stain – the thick smear detects the Plasmodium genus and the thin smear identifies the specific species (falciparum, vivax etc). This is important because malaria treatment differs between species (falciparum is treated with artemisinin based therapy and vivax is treated with chloroquine typically)</p>
+<p>Rapid Diagnostic Tests use antibodies to detect malaria like a COVID-19 lateral flow test. They are preferred for immediate, inexpensive diagnosis but do not differentiate between species and are thus not gold standard.</p>
+<p>Plasmodium DNA PCR is actually more specific and sensitive than Thick and Thin blood films. However they are not used for diagnosis due to cost and availability.</p>
+<p>Blood Cultures are used for bacterial infections and are not used to investigate malaria.</p>
+<p>Urinary antigen test can be used to detect Streptococcus pneumoniae and Legionella pneumophilia antigens, usually in a patient with community acquired pneumonia.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 48 year old male presents with a 3 month history of severe pain during defecation, with bright red rectal bleeding. Symptoms have continued despite a high fibre diet and macrogol. Examination reveals chronic anal fissures.</strong></p>
+<p><strong>Which management would be the most appropriate to consider?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Topical Glyceryl Trinitrate</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">1% Hydrocortisone Cream</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Abdominoperineal Resection</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Loperamide Hydrochloride</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Seton Placement</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Topical Glyceryl Trinitrate</strong></p>
+<p>The firstline management of a chronic anal fissure is topical GTN. GTN releases NO to relax smooth muscle and increase blood flow via vasodilation. In addition to GTN, a high fibre diet, laxatives, lubricants and analgesia should be continued. It is important to reduce the fear of defecation as this can lead to constipation which exacerbates anal fissures.</p>
+<p>1% hydrocortisone cream can be used to reduce inflammation in acute anal fissures but should not be used for over 7 days to prevent thinning of the skin.</p>
+<p>Abdominoperineal resection is a major operation to remove the rectum, anus and sphincter muscles to treat rectal and anal cancer.</p>
+<p>Loperamide Hydrochloride is used to treat acute diarrhoea. This would worsen the anal fissures by hardening stool.</p>
+<p>Setons are used in the treatment of complex perianal fistulas, especially in Crohn’s disease. These keep the fistula open allowing infection to drain.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 17 year old girl is brought to A&E by her parents after excessive vomiting. She has 8/10 right sided abdominal pain that radiates to the right shoulder. The pain is worsened when she tries to pass urine or stools.</strong></p>
+<p><strong>What is the most appropriate immediate test to perform?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Serum Amylase</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Paracetamol Levels</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Urinary beta-hCG</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Blood Alcohol Levels</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Transvaginal Ultrasound</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Urinary beta-hCG</strong></p>
+<p>Ectopic pregnancy must be excluded in acute abdominal pain in a woman of childbearing age. Shoulder tip pain further points to this diagnosis. Therefore urinary beta-hCG is the correct answer. </p>
+<p>Serum amylase is incorrect as this is used to diagnose acute pancreatitis. Pain normally radiates from epigastric to the back. </p>
+<p>Paracetamol levels should be checked if there is any suspicion of overdose. Although the pain and vomiting does align with the diagnosis, it still would not be performed first.</p>
+<p>Blood alcohol levels are not a priority to check. Acute intoxication would be managed clinically.</p>
+<p>Transvaginal ultrasound is an important investigation for ectopic pregnancy, but would only be performed after a positive urinary beta-hCG. TVUS can identify an ectopic adnexal mass in the shape of a bagel (known as the bagel sign).</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 25 year old male inpatient has had trouble sleeping and a low mood. He has been non-weight bearing for 3 months after a motorcycle accident.</strong></p>
+<p><strong>Which scoring system would be most appropriate to screen for depression?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">GAD-7</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">PHQ-9</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">DAS-28</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">MMSE</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">4AT</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: PHQ-9</strong></p>
+<p>PHQ-9 is a rapid, patient-performed self assessment consisting of 9 questions to gauge severity of depression and can guide administration of antidepressants. It is commonly used to screen at-risk patients, e.g. those with disabilities, chronic diseases and long term inpatients.</p>
+<p>GAD-7 measures severity of anxiety, typically in outpatients. For both PHQ-9 and GAD-7 a score of 10 and above prompts consideration for medical intervention.</p>
+<p>DAS-28 measures activity of rheumatoid arthritis by assessing tenderness and swelling of the shoulders, elbows, wrists, knees, MCP’s and PIP’s, mashed into an algorithm with ESR and CRP.</p>
+<p>MMSE is the Mini Mental State Examination, normally to screen for suspected dementia. There is evidence of cognitive impairment if MMSE < 25 (normally 25-30).</p>
+<p>4AT score is a tool used by clinicians to rapidly screen for delirium. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>An 84 year old male with prostate cancer and mild dementia suddenly begins shouting at nurses and refusing to eat or drink. He attempts to climb out of bed and is restrained and given mittens to prevent him removing his catheter. He is disoriented to time and place and is hallucinating that his parents are in the room. His nurse reports that he was “mostly fine” last night. </strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Rapidly Progressive Dementia</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Depression</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Schizophrenia</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Brain Metastases</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Delirium</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Delirium</strong></p>
+<p>The acute cognitive decline and aggression makes delirium the most likely diagnosis. The fact that he was mostly fine the night before is the sole reason. The aetiology is most likely from a UTI, which is the most common cause of delirium in the elderly. He is at increased risk of UTI due to catheter use and prostate cancer.</p>
+<p>Rapidly progressive dementia is a rare severe condition where cognitive decline occurs within weeks or months. The most common cause is Creutzfeldt Jakob disease which is a prion disease. </p>
+<p>Depression is unlikely to cause acute aggression and hallucinations but can cause apparent cognitive decline. It is characterised by “I don’t know” answers.</p>
+<p>Schizophrenia would be rare to occur at this late age, especially for men. Schizophrenia would also not have this rapid development.</p>
+<p>Brain metastases are unlikely to have this rapid onset, and would present with increasing ICP signs such as headaches and seizures. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 29 year old primigravida woman presents at 42 weeks gestation presents to the labour and delivery unit with contractions lasting over 20 hours. After membrane sweep, the cervix is firm, dilated to 2 cm with an effacement of 30%. Fetal station is -2. Cardiotocography is normal.</strong></p>
+<p><strong>What is the next best step in management?</strong></p>
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Vaginal Prostaglandin E2</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IV Oxytocin Infusion</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Amniotomy and IV Oxytocin Infusion</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Vaginal Progesterone</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Caesarean Section</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Vaginal Prostaglandin E2</strong></p>
+<p>This woman is post term (42 weeks or more) in the 1st stage of labour, which is prolonged (latent stage > 20 hours). Both of these indicate induction of labour due to an unfavourable cervix. The method of induction of labour is decided via Bishop’s score. This woman has a Bishop’s score of 2. A score of 6 and below indicates prostaglandin use.</p>
+<p>A Bishop score > 6 would indicate amniotomy and IV oxytocin infusion</p>
+<p>Vaginal progesterone would worsen things by preventing ripening, effacement and shortening. It is instead used as prevention for women with a history of preterm births.</p>
+<p>Caesarean section would only be performed when there is fetal compromise, risk to the mother, or failed induction of labour. A normal cardiotocography is reassuring that there is no fetal distress.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 71 year old male is undergoing his 4th cycle of chemotherapy for Burkitt lymphoma. He mentions to the nurse that he is experiencing worsening nausea and vomiting, muscle cramps and fatigue. </strong></p>
+<p><strong>His blood results are shown below:</strong></p>
+<p>Hb: 105g/L 			(115-160)</p>
+<p>MCV: 90fl 			(82-100)</p>
+<p>Na+: 137mmol/L 		(135-145)</p>
+<p>K+: 6.1mmol/L 		(3.5-5.0)</p>
+<p>Ca: 1.6mmol/L		(2.1-2.6)</p>
+<p>Phosphate: 1.8mmol/L	(0.8-1.4)</p>
+<p>Uric acid: 532µmol/L	(200-430)</p>
+<p>Creatinine: 202µmol	(55-120)</p>
+<p><strong>What is the most likely cause of these findings?</strong></p>
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Tumour Lysis Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Neutropenic Sepsis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">CINV (Chemotherapy Induced Nausea & Vomiting)</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Acute Tubular Necrosis</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Richter’s Transformation</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Tumour Lysis Syndrome</strong></p>
+<p>The hyperuricaemia, hyperkalaemia, hypocalcaemia and hyperphosphatemia is pathognomonic with tumour lysis syndrome (although technically we need to compare to his baseline). This is where chemotherapy causes large numbers of cancer cells to die rapidly, releasing their contents into the blood and causing massive electrolyte abnormalities, causing AKI, seizures, arrhythmias and death. Most commonly caused by treatment of haematological malignancies.</p>
+<p>Neutropenic sepsis is important to watch out for in chemotherapy patients and can present very nonspecific but would not explain the blood results.</p>
+<p>CINV could cause dehydration, metabolic alkalosis and even hypovolaemic shock but would be hypokalaemic instead of hyper.</p>
+<p>ATN can be a result of TLS but TLS is the primary cause of the findings. ATN can develop due to uric acid and calcium phosphate deposition in the tubules, causing necrosis.</p>
+<p>Richter’s is a rare complication of Chronic Lymphocytic Leukaemia (normally slow and minimal symptoms) transforming into DLBCL (aggressive lymphoma). It has a bad prognosis. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 29 year old woman is recently diagnosed with epilepsy and is started on lamotrigine.</strong></p>
+<p><strong>Which of the following is key information the clinician should explain about this medication?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">She should use contraception due to teratogenicity</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">She should be aware of a rare skin side effect</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">She will require routine blood tests</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">She should take the medication before meals for adequate absorption</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">She should avoid taking ibuprofen</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: She should be aware of a rare skin side effect</strong></p>
+<p>Lamotrigine’s most notable and serious side effect is Stevens Johnson syndrome which occurs within the first few weeks of treatment. SJS is an immune mediated life threatening rash consisting of blistering, peeling, severe pain and a positive Nikolsky sign. This is where light pressure causes skin detachment. Therefore any rash should be immediately notified.</p>
+<p>Lamotrigine is considered safe in pregnancy.</p>
+<p>Lamotrigine does not require routine blood tests and is monitored clinically. Noteworthy examples of drugs that need routine testing include lithium, warfarin, clozapine and amiodarone.</p>
+<p>Lamotrigine can be taken with or without food</p>
+<p>Lamotrigine does not interact with ibuprofen. You’re not expected to know this; the question is testing knowledge of SJS.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 50 year old male was admitted to the hospital 2 days ago for a fractured rib. He has a 25 pack year smoking history and is a known heavy alcoholic. On examination, he now has a resting tremor, tachycardia and is visibly restless. He is sweating profusely.</strong></p>
+<p><strong>What is the first-line management?</strong></p>
+
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Chlordiazepoxide</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Disulfiram</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Naloxone</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Acamprosate</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">CAGE questionnaire</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Chlordiazepoxide</strong></p>
+<p>This vignette describes a case of acute alcohol withdrawal. He is a known alcoholic and is now experiencing autonomic dysfunction due to loss of GABA-mediated inhibition. Firstline treatment is long acting benzodiazepines to increase GABA, such as chlordiazepoxide. This is important to prevent seizures and delirium tremens.</p>
+<p>Disulfiram maintains alcohol abstinence by inhibiting aldehyde dehydrogenase to create an unpleasant buildup of acetaldehyde that simulates a bad hangover.</p>
+<p>Naloxone is an opioid receptor antagonist used in opioid overdose.</p>
+<p>Acamprosate acts as a GABA and glutamate stabiliser to reduce alcohol cravings. It is used in maintaining alcohol abstinence.</p>
+<p>The CAGE questionnaire is a screening tool for alcohol misuse. It consists of 4 questions: Cutting down, Annoyance, Guilt and Eye-openers. A score of 2 or more indicates potential alcohol misuse. This patient clearly has an alcohol issue and if you picked this, it might be time to put the stethoscope on vinted.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 20 year old woman presents to the sexual health clinic with a 2 year history of severe, painful period cramps that do not improve despite over the counter painkillers. After further questioning, she says she has deep pain during sexual intercourse and thus has not had any recent sexual partners. Per speculum exam is performed which is normal apart from extreme tenderness. She has been to multiple different doctors.</strong></p>
+<p><strong>What is the most likely diagnosis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Polycystic Ovarian Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Fibromyalgia</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Pelvic Inflammatory Disease</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Fibroids</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Endometriosis  </button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Endometriosis </strong></p>
+<p>Endometriosis typically causes severe, debilitating pain unresolved by painkillers during periods, intercourse and passing bowels. It is often misdiagnosed and can have a normal examination per speculum. It should be investigated with transvaginal ultrasound to find endometriomas and uterine adhesions, but definitive diagnosis requires laparoscopy.</p>
+<p>Polycystic Ovarian Syndrome presents with irregular/absent periods, hirsutism, acne and weight gain instead of the presenting complaint being pain.</p>
+<p>Fibromyalgia does present with pain (and fatigue). However, the triggers of the pain being related to periods and intercourse suggest a gynaecological cause.</p>
+<p>Pelvic Inflammatory Disease would present with an infectious picture. Symptoms such as fever, discharge and risk factors including previous STI and recent sexual partners would be expected.</p>
+<p>Fibroids, also known as leiomyomas, are benign smooth muscle tumours of the uterus. This presents with heavy, painful periods but typically not as debilitating and disproportionate severity of pain.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>Which of the following diseases has an autosomal recessive inheritance pattern?</strong></p>
+
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Sickle Cell Disease</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Duchenne’s Muscular Dystrophy</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Klinefelter Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Haemophilia A</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Hypertrophic Cardiomyopathy (HOCM)</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Sickle Cell Disease</strong></p>
+<p>Sickle Cell Disease has an autosomal recessive inheritance pattern.</p>
+<p>Duchenne’s Muscular Dystrophy has an X-linked recessive inheritance pattern.</p>
+<p>Klinefelter syndrome is not inherited. It occurs sporadically due to nondisjunction of gametes to cause a 47 XXY karyotype.</p>
+<p>Haemophilia A is an X linked recessive disorder.</p>
+<p>HOCM has an autosomal dominant inheritance pattern.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A middle aged woman suffers an accident after pouring ice into a deep fryer. She has 2nd degree burns covering the anterior side of her upper right extremity. Fortunately, the rest of her body is unaffected. </strong></p>
+<p><strong>What percentage of total body surface area is estimated to be affected?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">1%</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">4.5%</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">9%</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">18%</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">27%</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: 4.5%</strong></p>
+<p>The rule of nines can be used to estimate the % body surface area affected by a burn. The upper extremities each contribute 9%, the lower extremities 18%, the head and neck 9%, the anterior torso 18% (split evenly by abdomen and thorax), the posterior torso 18% and the perineum 1%.</p>
+<p>Since only the anterior surface of the upper limb is affected, half of 9% is estimated to be burnt. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 33 year old woman presents with a 2 week history of fatigue, slurred speech, dizziness and numbness in her right leg. The patient also reports partial colour vision loss and pain in her left eye 3 months ago. The symptoms are worse during exercise and hot showers. MRI reveals multiple hypointense white matter lesions.</strong></p>
+<p><strong>What finding is expected to be seen in CSF analysis?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Cloudy CSF</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Decreased Protein Count</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Oligoclonal Bands</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Xanthochromia </button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Decreased CSF Glucose</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Oligoclonal Bands</strong></p>
+<p>This patient has had left optic neuritis 3 months ago and neurological symptoms again recently. Combined with her age, this points towards a diagnosis of multiple sclerosis which is confirmed by the MRI, as this shows flare-ups disseminated in both space and time. The presence of oligoclonal bands in the CSF but not the serum is a marker of immune activity that is 95% specific for multiple sclerosis. Also note Uhthoff’s phenomenon (worsening of MS symptoms in heat).</p>
+<p>Cloudy CSF is a nonspecific finding in bacterial and fungal meningitis.</p>
+<p>Decreased protein is an uncommon finding. In meningitis, protein is normally elevated.</p>
+<p>Xanthochromia is the yellow discolouration of CSF caused by bilirubin. It is used >12 hours after symptom onset to confirm SAH.</p>
+<p>Decreased CSF Glucose is present in bacterial meningitis.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 56 year old woman with known gallstones presents to A&E with nausea, vomiting and severe epigastric pain radiating to the back. Her vitals show a BP of 126/76 mmHg, HR of 98bpm, SpO2 of 96% and a tympanic temperature of 38°C. Bloods and imaging are ordered.</strong></p>
+<p><strong>Given the most likely diagnosis, what is the next best step in management?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">IV Piperacillin Tazobactam</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Supplemental Oxygen</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Nasogastric Tube Insertion</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">IV Fluids</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Endoscopic Retrograde Cholangiopancreatography (ERCP)</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: IV Fluids</strong></p>
+<p>The vignette describes a typical case of acute pancreatitis, with gallstones being a risk factor. The most appropriate initial management would be aggressive IV fluid resuscitation combined with analgesia. This maintains pancreatic perfusion, preventing further necrosis.</p>
+<p>Antibiotics are not routinely given for acute pancreatitis as it is normally an inflammatory process instead of infective. Abx would be indicated if there are signs of cholangitis or infected pancreatic necrosis, which have a more septic picture.</p>
+<p>Supplemental oxygen is not needed as her SpO2 is adequate (96%).</p>
+<p>In the case of acute pancreatitis, NG tubes can be used for decompression in cases of severe vomiting or for early enteral feeding. This patient has a stable blood pressure and there is no mention of the severity of vomiting. Regardless, IV fluids would still be performed as a priority. It is worth noting that patients with acute pancreatitis should be nil by mouth.</p>
+<p>ERCP is a cause of acute pancreatitis and would be difficult to perform in the presence of inflammation. </p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 27 year old woman requests contraception. She has past medical history of large fibroids and migraines with aura.</strong></p>
+<p><strong>Which of the following is the most appropriate method of contraception for her?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Combined Oral Contraceptive Pill (COCP)</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Progesterone-only Pill (POP)</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Mirena Intrauterine System</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Copper Coil Intrauterine Device (IUD)</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Evra Contraceptive Patch	</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Progesterone-only Pill (POP)</strong></p>
+<p>The POP is the most appropriate due to the other methods being contraindicated. Other cases where the POP is firstline include breastfeeding women.</p>
+<p>The COCP is contraindicated by migraines with aura.</p>
+<p>The IUS is contraindicated due to structural distortion of the uterine cavity from large fibroids.</p>
+<p>The IUD is contraindicated due to structural distortion of the uterine cavity from large fibroids.</p>
+<p>The Contraceptive Patch is contraindicated by migraines with aura.</p>
+</div>
+</div>
+
+<div class="question">
+<p><strong>A 65 year old male presents with a 2 day history of visual problems. He describes a “dark curtain” covering the top of his vision. He denies any pain or trauma. </strong></p>
+<p><strong>Which of the following is the most likely risk factor for his presentation?</strong></p>
+
+
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Tetracyclines</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Alport Syndrome</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Presbyopia</button>
+<button class="option" data-correct="true" onclick="selectAnswer(this)">Myopia</button>
+<button class="option" data-correct="false" onclick="selectAnswer(this)">Multiple Sclerosis</button>
+
+<div class="feedback">
+<p><strong>Correct Answer: Myopia</strong></p>
+<p>The painless loss of vision coming down “like a curtain” is highly buzzy for retinal detachment, when the neurosensory retina separates from the underlying retinal pigment epithelium. High myopia increases risk of detachment due to elongation of the eyeball which stretches the retina. Other risk factors include trauma and eye surgery.</p>
+<p>Tetracyclines can cause idiopathic intracranial hypertension that can affect vision. However this presents as a headache. Tetracyclines also causes skin photosensitivity</p>
+<p>Alport syndrome is a genetic disorder affecting type IV collagen. This causes other ocular abnormalities such as anterior lenticonus (bulging lens) and would present at a younger age. It would also cause nephritis and sensorineural hearing loss.</p>
+<p>Presbyopia is age related worsening of near vision. It is not associated with retinal detachment.</p>
+<p>Multiple sclerosis is associated with optic neuritis and presents with painful vision loss, reduced visual acuity and reduced colour vision.</p>
+</div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-buttons">
+<button id="prev-btn" onclick="goBack()">Back</button>
+<button id="next-btn" onclick="goNext()">Next</button>
+</div>
+
+</div>
+
+</body>
+</html>
